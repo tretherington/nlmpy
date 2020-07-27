@@ -23,8 +23,8 @@
 
 # The MIT License (MIT)
 
-# Copyright (c) 2014 Thomas R. Etherington, E. Penelope Holland, and
-# David O'Sullivan.
+# Copyright (c) 2014 Thomas R. Etherington, E. Penelope Holland, and David O'Sullivan.
+# Copyright (c) 2020 Landcare Research New Zealand Ltd
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -497,6 +497,40 @@ def distanceGradient(source, mask=None):
 
 #------------------------------------------------------------------------------
 
+def waveSurface(nRow, nCol, nWaves, direction=None, mask=None):
+    """
+    Create a waves neutral landscape model with values ranging 0-1.
+
+    Parameters
+    ----------
+    nRow : int
+        The number of rows in the array.
+    nCol : int
+        The number of columns in the array.
+    waves: int
+        The number of waves in the landscape.
+    direction: int, optional
+        The direction of the waves as a bearing from north, if unspecified
+        the direction is randomly determined.
+    mask : array, optional
+        2D array used as a binary mask to limit the elements with values.
+        
+    Returns
+    -------
+    out : array
+        2D array.
+    """
+    gradient = planarGradient(nRow, nCol, direction)
+    waves = np.cos(gradient * (2 * np.pi * nWaves))
+    if mask is None:
+        rescaledArray = linearRescale01(waves)
+    else:
+        maskedArray = maskArray(waves, mask)
+        rescaledArray = linearRescale01(maskedArray)
+    return(rescaledArray)
+
+#------------------------------------------------------------------------------
+    
 def mpd(nRow, nCol, h, mask=None):
     """    
     Create a midpoint displacement neutral landscape model with values ranging 
