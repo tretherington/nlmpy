@@ -28,6 +28,7 @@
 import math
 import numpy as np
 from scipy import ndimage
+from numba import jit
 
 #------------------------------------------------------------------------------
 # REQUIRED FUNCTIONS:
@@ -504,7 +505,7 @@ def waveSurface(nRow, nCol, nWaves, direction=None, mask=None):
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
-    
+
 def mpd(nRow, nCol, h, mask=None):
     """    
     Create a midpoint displacement neutral landscape model with values ranging 
@@ -528,89 +529,11 @@ def mpd(nRow, nCol, h, mask=None):
         2D array.
     """
     # Determine the dimension of the smallest square
-    maxDim = max(nRow, nCol)
-    N = int(math.ceil(math.log(maxDim - 1, 2)))
+    maxDim = np.max(np.array([nRow, nCol]))
+    N = np.int(np.ceil(np.log2(maxDim - 1)))
     dim = 2 ** N + 1
-    # Create a surface consisting of random displacement heights average value
-    # 0, range from [-0.5, 0.5] x displacementheight
-    disheight = 2.0
-    surface = np.random.random([dim,dim]) * disheight -0.5 * disheight
-    
-    #--------------------------------------------------------------------------
-    
-    # Apply the square-diamond algorithm
-    def randomdisplace(disheight):
-        # Returns a random displacement between -0.5 * disheight and 0.5 * disheight
-        return np.random.random() * disheight -0.5 * disheight
-    
-    def displacevals(p, disheight):
-        # Calculate the average value of the 4 corners of a square (3 if up
-        # against a corner) and displace at random.
-        if len(p) == 4:
-            pcentre = 0.25 * sum(p) + randomdisplace(disheight)
-        elif len(p) == 3:
-            pcentre = sum(p) / 3 + randomdisplace(disheight)	
-        return pcentre
-    
-    def check_diamond_coords(diax,diay,dim,i2):
-        # get the coordinates of the diamond centred on diax, diay with radius i2
-        # if it fits inside the study area
-        if diax < 0 or diax > dim or diay <0 or diay > dim:
-            return []
-        if diax-i2 < 0:
-            return [(diax+i2,diay),(diax,diay-i2),(diax,diay+i2)]
-        if diax + i2 >= dim:
-            return [(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)]
-        if diay-i2 < 0:
-            return [(diax+i2,diay),(diax-i2,diay),(diax,diay+i2)]
-        if diay+i2 >= dim:
-            return [(diax+i2,diay),(diax-i2,diay),(diax,diay-i2)]
-        return [(diax+i2,diay),(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)]
-
-    # Set square size to cover the whole array
-    inc = dim-1
-    while inc > 1: # while considering a square/diamond at least 2x2 in size
-            
-            i2 = int(inc/2) # what is half the width (i.e. where is the centre?)
-            # SQUARE step
-            for x in range(0,dim-1,inc):
-                    for y in range(0,dim-1,inc):
-                            # this adjusts the centre of the square 
-                            surface[x+i2,y+i2] = displacevals([surface[x,y],surface[x+inc,y],surface[x+inc,y+inc],surface[x,y+inc]],disheight)
-            
-            # DIAMOND step
-            for x in range(0, dim-1, inc):
-                for y in range(0, dim-1,inc):
-                    diaco = check_diamond_coords(x+i2,y,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x+i2,y] = displacevals(diavals,disheight)
-                   
-                    diaco = check_diamond_coords(x,y+i2,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x,y+i2] = displacevals(diavals,disheight)
-
-                    diaco = check_diamond_coords(x+inc,y+i2,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x+inc,y+i2] = displacevals(diavals,disheight)
-
-                    diaco = check_diamond_coords(x+i2,y+inc,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x+i2,y+inc] = displacevals(diavals,disheight)
-                    
-            # Reduce displacement height
-            disheight = disheight * 2 ** (-h)
-            inc = int(inc / 2)
-
-    #--------------------------------------------------------------------------
-    
+    # Create surface
+    surface = diamondsquare(dim, h)
     # Extract a portion of the array to match the dimensions
     randomStartRow = np.random.choice(range(dim - nRow))
     randomStartCol = np.random.choice(range(dim - nCol))
@@ -621,7 +544,80 @@ def mpd(nRow, nCol, h, mask=None):
         array = maskArray(array, mask)
     rescaledArray = linearRescale01(array)
     return(rescaledArray)
+
+@jit(nopython=True)
+def diamondsquare(dim, h):
+    # Create a surface consisting of random displacement heights average value
+    # 0, range from [-0.5, 0.5] x displacementheight
+    disheight = 2.0
+    randomValues = np.random.random(size=dim*dim)
+    surface = np.reshape(randomValues, (dim, dim))
+    surface = surface * disheight -0.5 * disheight
+    # Set square size to cover the whole array
+    inc = dim-1
+    while inc > 1: # while considering a square/diamond at least 2x2 in size
+            i2 = int(inc/2) # what is half the width (i.e. where is the centre?)
+            # SQUARE step
+            for x in range(0,dim-1,inc):
+                for y in range(0,dim-1,inc):
+                    # this adjusts the centre of the square 
+                    surface[x+i2,y+i2] = displacevals(np.array([surface[x,y],surface[x+inc,y],surface[x+inc,y+inc],surface[x,y+inc]]), disheight)
+            # DIAMOND step
+            for x in range(0, dim-1, inc):
+                for y in range(0, dim-1,inc):
+                    diaco = check_diamond_coords(x+i2,y,dim,i2)
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x+i2,y] = displacevals(diavals,disheight)
+                    diaco = check_diamond_coords(x,y+i2,dim,i2)
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x,y+i2] = displacevals(diavals,disheight)
+                    diaco = check_diamond_coords(x+inc,y+i2,dim,i2)
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x+inc,y+i2] = displacevals(diavals,disheight)
+                    diaco = check_diamond_coords(x+i2,y+inc,dim,i2)
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x+i2,y+inc] = displacevals(diavals,disheight)
+            # Reduce displacement height
+            disheight = disheight * 2 ** (-float(h))
+            inc = int(inc / 2)
+    return(surface)
     
+@jit(nopython=True)
+def randomdisplace(disheight):
+    # Returns a random displacement between -0.5 * disheight and 0.5 * disheight
+    return(np.random.random() * disheight -0.5 * disheight)
+
+@jit(nopython=True)
+def displacevals(p, disheight):
+    # Calculate the average value of the 4 corners of a square (3 if up
+    # against a corner) and displace at random.
+    if len(p) == 4:
+        pcentre = 0.25 * np.sum(p) + randomdisplace(disheight)
+    elif len(p) == 3:
+        pcentre = np.sum(p) / 3 + randomdisplace(disheight)	
+    return(pcentre)
+
+@jit(nopython=True)
+def check_diamond_coords(diax,diay,dim,i2):
+    # get the coordinates of the diamond centred on diax, diay with radius i2
+    if diax-i2 < 0:
+        return([(diax+i2,diay),(diax,diay-i2),(diax,diay+i2)])
+    if diax + i2 >= dim:
+        return([(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)])
+    if diay-i2 < 0:
+        return([(diax+i2,diay),(diax-i2,diay),(diax,diay+i2)])
+    if diay+i2 >= dim:
+        return([(diax+i2,diay),(diax-i2,diay),(diax,diay-i2)])
+    return([(diax+i2,diay),(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)])    
+
 #------------------------------------------------------------------------------
 
 def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
