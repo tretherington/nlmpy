@@ -1,25 +1,4 @@
 #------------------------------------------------------------------------------
-# ABOUT NLMpy
-#------------------------------------------------------------------------------
-
-# NLMpy is a Python package for the creation of neutral landscape models that
-# are widely used in the modelling of ecological patterns and processes across
-# landscapes.
-
-# A full description of NLMpy is published in: Etherington TR, Holland EP, and 
-# O'Sullivan D (2015) NLMpy: a Python software package for the creation of 
-# neutral landscape models within a general numerical framework. Methods in 
-# Ecology and Evolution 6(2):164-168 , which is freely available online  
-# (http://bit.ly/14i4x7n).  
-
-# The journal website also holds example scripts and GIS data
-# (http://bit.ly/1XUXjOF) that generate the figures in the paper.  There are 
-# also some tutorial videos that provide some advice about installing 
-# (http://bit.ly/1qLfMjt) and using (http://bit.ly/2491u9n) NLMpy.
-
-#------------------------------------------------------------------------------
-# LICENSING
-#------------------------------------------------------------------------------
 
 # The MIT License (MIT)
 
