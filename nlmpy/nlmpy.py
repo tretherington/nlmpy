@@ -94,11 +94,10 @@ def randomUniform01(nRow, nCol, mask=None):
     out : array
         2D float array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     array = np.random.random((nRow, nCol))
-    maskedArray = maskArray(array, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        array = maskArray(array, mask)
+    rescaledArray = linearRescale01(array)
     return(rescaledArray)
     
 #------------------------------------------------------------------------------
@@ -404,17 +403,16 @@ def planarGradient(nRow, nCol, direction=None, mask=None):
     """
     if direction is None:
         direction = np.random.uniform(0, 360, 1) # a random direction
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Create arrays of row and column index
     rowIndex, colIndex = np.indices((nRow, nCol))
     # Determine the eastness and southness of the direction
     eastness = np.sin(np.deg2rad(direction))
     southness = np.cos(np.deg2rad(direction)) * -1
     # Create gradient array
-    gradientArray = (southness * rowIndex + eastness * colIndex)
-    maskedArray = maskArray(gradientArray, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    gradient = (southness * rowIndex + eastness * colIndex)
+    if mask is not None:
+        gradient = maskArray(gradient, mask)
+    rescaledArray = linearRescale01(gradient)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -441,10 +439,10 @@ def edgeGradient(nRow, nCol, direction=None, mask=None):
         2D array.
     """
     # Create planar gradient
-    gradientArray = planarGradient(nRow, nCol, direction, mask)
+    gradient = planarGradient(nRow, nCol, direction, mask)
     # Transform to a central gradient
-    edgeGradientArray = (np.abs(0.5 - gradientArray) * -2) + 1
-    rescaledArray = linearRescale01(edgeGradientArray)
+    edgeGradient = (np.abs(0.5 - gradient) * -2) + 1
+    rescaledArray = linearRescale01(edgeGradient)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -467,11 +465,10 @@ def distanceGradient(source, mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones(np.shape(source))
     gradient = ndimage.distance_transform_edt(1 - source)
-    maskedArray = maskArray(gradient, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        gradient = maskArray(gradient, mask)
+    rescaledArray = linearRescale01(gradient)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -501,11 +498,9 @@ def waveSurface(nRow, nCol, nWaves, direction=None, mask=None):
     """
     gradient = planarGradient(nRow, nCol, direction)
     waves = np.cos(gradient * (2 * np.pi * nWaves))
-    if mask is None:
-        rescaledArray = linearRescale01(waves)
-    else:
-        maskedArray = maskArray(waves, mask)
-        rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        waves = maskArray(waves, mask)
+    rescaledArray = linearRescale01(waves)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -532,8 +527,6 @@ def mpd(nRow, nCol, h, mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))  
     # Determine the dimension of the smallest square
     maxDim = max(nRow, nCol)
     N = int(math.ceil(math.log(maxDim - 1, 2)))
@@ -624,8 +617,9 @@ def mpd(nRow, nCol, h, mask=None):
     array = surface[randomStartRow:randomStartRow + nRow,
                     randomStartCol:randomStartCol + nCol]
     # Apply mask and rescale 0-1
-    maskedArray = maskArray(array, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        array = maskArray(array, mask)
+    rescaledArray = linearRescale01(array)
     return(rescaledArray)
     
 #------------------------------------------------------------------------------
@@ -655,8 +649,6 @@ def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
     out : array
         2D array.
     """    
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Create an empty array of correct dimensions
     array = np.zeros((nRow, nCol)) - 1
     # Keep applying random clusters until all elements have a value
@@ -667,8 +659,9 @@ def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
         col = np.random.choice(range(-maxL, nCol))
         array[row:row + width, col:col + height] = np.random.random()   
     # Apply mask and rescale 0-1        
-    maskedArray = maskArray(array, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        array = maskArray(array, mask)
+    rescaledArray = linearRescale01(array)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -695,8 +688,6 @@ def randomElementNN(nRow, nCol, n, mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Create an empty array of correct dimensions
     array = np.zeros((nRow, nCol))
     # Insert value for n elements
@@ -708,8 +699,9 @@ def randomElementNN(nRow, nCol, n, mask=None):
     # Interpolate the values
     interpolatedArray = nnInterpolate(array, array==0)
     # Apply mask and rescale 0-1
-    maskedArray = maskArray(interpolatedArray, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        interpolatedArray = maskArray(interpolatedArray, mask)
+    rescaledArray = linearRescale01(interpolatedArray)
     return(rescaledArray)
  
 #------------------------------------------------------------------------------
@@ -753,8 +745,6 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Define a dictionary of possible neighbourhood structures:
     neighbourhoods = {}
     neighbourhoods['4-neighbourhood'] = np.array([[0,1,0],
@@ -782,8 +772,9 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
     # Gap fill with nearest neighbour interpolation
     interpolatedArray = nnInterpolate(clusterArray, clusterArray==0)
     # Apply mask and rescale 0-1
-    maskedArray = maskArray(interpolatedArray, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        interpolatedArray = maskArray(interpolatedArray, mask)
+    rescaledArray = linearRescale01(interpolatedArray)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
