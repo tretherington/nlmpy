@@ -23,3 +23,18 @@ from nlmpy import nlmpy
 nlm = nlmpy.mpd(nRow=50, nCol=50, h=0.75)
 nlmpy.exportASCIIGrid("raster.asc", nlm)
 ```
+
+## New developments
+
+Having forked the project into manaakiwhenua the following have been (or are being!) added:
+
+### Done:
+* additional NLMs; waveSurface, perlinNoise
+
+### Doing:
+* numba integration to leverage jit compliation where useful
+* general coding improvements to speed slow functions up
+* error check and handling
+
+### To do:
+* wiki pages containing more detailed examples

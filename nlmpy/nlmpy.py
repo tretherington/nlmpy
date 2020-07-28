@@ -3,6 +3,7 @@
 # The MIT License (MIT)
 
 # Copyright (c) 2014 Thomas R. Etherington, E. Penelope Holland, and David O'Sullivan.
+# Copyright (c) 2019 Pierre Vigier
 # Copyright (c) 2020 Landcare Research New Zealand Ltd
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,10 +26,10 @@
 
 #------------------------------------------------------------------------------
 
-import math
 import numpy as np
 from scipy import ndimage
 from numba import jit
+import sys
 
 #------------------------------------------------------------------------------
 # REQUIRED FUNCTIONS:
@@ -620,6 +621,78 @@ def check_diamond_coords(diax,diay,dim,i2):
 
 #------------------------------------------------------------------------------
 
+def perlinNoise(nRow, nCol, rcPeriods, rcWrap=(False, False), mask=None):
+    """    
+    Create a random rectangular cluster neutral landscape model with 
+    values ranging 0-1.
+
+    Parameters
+    ----------
+    nRow : int
+        The number of rows in the array.
+    nCol : int
+        The number of columns in the array.
+    rcPeriods: tuple of int
+        The number of periods of Perlin noise across rows, first index, and 
+        columns, second index.  nRow and nCol must be multiples of their 
+        respective periods.
+    rcWrap: tuple of boolean
+        Whether the Perlin noise should wrap by row, first index, and 
+        column, second index.        
+    mask : array, optional
+        2D array used as a binary mask to limit the elements with values.
+        
+    Returns
+    -------
+    out : array
+        2D array.
+    """   
+    rP = rcPeriods[0]
+    cP = rcPeriods[1]
+    
+    # Check the the rows and cols are multiples of the periods
+    if nRow%rP != 0:
+        sys.exit("nRow is not a multiple of rcPeriods[0]")
+    if nCol%cP != 0:
+        sys.exit("nCol is not a multiple of rcPeriods[1]")   
+    
+    delta = (rP / nRow, cP / nCol)
+    d = (nRow // rP, nCol // cP)
+    grid = np.mgrid[0:rP:delta[0],0:cP:delta[1]].transpose(1, 2, 0) % 1
+    # Gradients
+    angles = 2 * np.pi * np.random.rand(rP + 1, cP + 1)
+    gradients = np.dstack((np.cos(angles), np.sin(angles)))
+    if rcWrap[0]:
+        gradients[-1,:] = gradients[0,:]
+    if rcWrap[1]:
+        gradients[:,-1] = gradients[:,0]
+    gradients = gradients.repeat(d[0], 0).repeat(d[1], 1)
+    g00 = gradients[    :-d[0],    :-d[1]]
+    g10 = gradients[d[0]:     ,    :-d[1]]
+    g01 = gradients[    :-d[0],d[1]:     ]
+    g11 = gradients[d[0]:     ,d[1]:     ]
+    # Ramps
+    n00 = np.sum(np.dstack((grid[:,:,0]  , grid[:,:,1]  )) * g00, 2)
+    n10 = np.sum(np.dstack((grid[:,:,0]-1, grid[:,:,1]  )) * g10, 2)
+    n01 = np.sum(np.dstack((grid[:,:,0]  , grid[:,:,1]-1)) * g01, 2)
+    n11 = np.sum(np.dstack((grid[:,:,0]-1, grid[:,:,1]-1)) * g11, 2)
+    # Interpolation
+    t = f(grid)
+    n0 = n00 * (1 - t[:,:,0]) + t[:,:,0] * n10
+    n1 = n01 * (1 - t[:,:,0]) + t[:,:,0] * n11
+    surface = np.sqrt(2) * ((1 - t[:,:,1]) * n0 + t[:,:,1] * n1)
+    # Apply mask and rescale 0-1
+    if mask is not None:
+        surface = maskArray(surface, mask)
+    rescaledArray = linearRescale01(surface)
+    return(rescaledArray)
+    
+@jit(nopython=True)
+def f(t):
+    return(6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3)
+
+#------------------------------------------------------------------------------
+
 def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
     """    
     Create a random rectangular cluster neutral landscape model with 
@@ -654,7 +727,7 @@ def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
         row = np.random.choice(range(-maxL, nRow))
         col = np.random.choice(range(-maxL, nCol))
         array[row:row + width, col:col + height] = np.random.random()   
-    # Apply mask and rescale 0-1        
+    # Apply mask and rescale 0-1
     if mask is not None:
         array = maskArray(array, mask)
     rescaledArray = linearRescale01(array)
