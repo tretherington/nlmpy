@@ -500,7 +500,7 @@ def waveSurface(nRow, nCol, periods, direction=None, mask=None):
         2D array.
     """
     gradient = planarGradient(nRow, nCol, direction)
-    waves = np.cos(gradient * (2 * np.pi * nWaves))
+    waves = np.sin(gradient * (2 * np.pi * periods))
     if mask is not None:
         waves = maskArray(waves, mask)
     rescaledArray = linearRescale01(waves)
