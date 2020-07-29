@@ -475,7 +475,7 @@ def distanceGradient(source, mask=None):
 
 #------------------------------------------------------------------------------
 
-def waveSurface(nRow, nCol, nWaves, direction=None, mask=None):
+def waveSurface(nRow, nCol, periods, direction=None, mask=None):
     """
     Create a waves neutral landscape model with values ranging 0-1.
 
@@ -485,8 +485,9 @@ def waveSurface(nRow, nCol, nWaves, direction=None, mask=None):
         The number of rows in the array.
     nCol : int
         The number of columns in the array.
-    waves: int
-        The number of waves in the landscape.
+    periods: int
+        The number of periods in the landscape, where a period consists of a 
+        complete wave cycle of one crest and one trough.
     direction: int, optional
         The direction of the waves as a bearing from north, if unspecified
         the direction is randomly determined.
