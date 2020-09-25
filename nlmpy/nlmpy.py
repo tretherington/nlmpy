@@ -643,9 +643,9 @@ def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
         The number of columns in the array.
     periods: tuple
         Integers for the number of periods of Perlin noise across row and 
-        columns for the first octave.
+        column dimensions for the first octave.
     octaves : int
-        The number of octave that will form the Perlin noise.
+        The number of octaves that will form the Perlin noise.
     lacunarity : int
         The rate at which the frequency of periods increases for each octive.
     persistance : float
@@ -669,7 +669,6 @@ def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
     rPeriodsMax = periods[0] * (lacunarity ** (octaves - 1))
     cPeriodsMax = periods[1] * (lacunarity ** (octaves - 1))
     periodsMultiple = np.lcm(rPeriodsMax, cPeriodsMax) # lowest commom multiple
-#    maxPeriods = periods * (lacunarity ** (octaves - 1))
     if dim % periodsMultiple != 0:
         dim = int(np.ceil(dim / periodsMultiple) * periodsMultiple)
 
@@ -721,7 +720,6 @@ def octave(nRow, nCol, periods, octive, lacunarity, persistence):
     octave = np.sqrt(2) * ((1 - t[:,:,1]) * n0 + t[:,:,1] * n1)
     return(octave * (persistence ** octive))
     
-
 @jit(nopython=True)
 def f(t):
     return(6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3)
