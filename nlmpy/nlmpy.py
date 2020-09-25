@@ -534,20 +534,25 @@ def mpd(nRow, nCol, h, mask=None):
     maxDim = np.max(np.array([nRow, nCol]))
     N = np.int(np.ceil(np.log2(maxDim - 1)))
     dim = 2 ** N + 1
-    # Create surface
+    # Create surface and extract required array size if needed
     surface = diamondsquare(dim, h)
-    # Extract a portion of the array to match the dimensions
-    randomStartRow = np.random.choice(range(dim - nRow))
-    randomStartCol = np.random.choice(range(dim - nCol))
-    array = surface[randomStartRow:randomStartRow + nRow,
-                    randomStartCol:randomStartCol + nCol]
+    if (nRow, nCol) != surface.shape:
+        surface = extractRandomArrayFromSquareArray(surface, nRow, nCol)
     # Apply mask and rescale 0-1
     if mask is not None:
-        array = maskArray(array, mask)
-    rescaledArray = linearRescale01(array)
+        surface = maskArray(surface, mask)
+    rescaledArray = linearRescale01(surface)
     return(rescaledArray)
 
-@jit(nopython=True)
+def extractRandomArrayFromSquareArray(array, nRow, nCol):
+    # Extract a portion of the array to match the dimensions
+    dim = array.shape[0]
+    randomStartRow = np.random.choice(range(dim - nRow))
+    randomStartCol = np.random.choice(range(dim - nCol))
+    return(array[randomStartRow:randomStartRow + nRow,
+                 randomStartCol:randomStartCol + nCol])
+
+#@jit(nopython=True)
 def diamondsquare(dim, h):
     # Create a surface consisting of random displacement heights average value
     # 0, range from [-0.5, 0.5] x displacementheight
@@ -607,9 +612,12 @@ def displacevals(p, disheight):
         pcentre = np.sum(p) / 3 + randomdisplace(disheight)	
     return(pcentre)
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def check_diamond_coords(diax,diay,dim,i2):
     # get the coordinates of the diamond centred on diax, diay with radius i2
+    # if it fits inside the study area
+    if diax < 0 or diax > dim or diay <0 or diay > dim:
+        return []
     if diax-i2 < 0:
         return([(diax+i2,diay),(diax,diay-i2),(diax,diay+i2)])
     if diax + i2 >= dim:
@@ -622,10 +630,10 @@ def check_diamond_coords(diax,diay,dim,i2):
 
 #------------------------------------------------------------------------------
 
-def perlinNoise(nRow, nCol, rcPeriods, rcWrap=(False, False), mask=None):
+def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
+                valley="u", mask=None):
     """    
-    Create a random rectangular cluster neutral landscape model with 
-    values ranging 0-1.
+    Create a Perlin noise neutral landscape model with values ranging 0-1.
 
     Parameters
     ----------
@@ -633,13 +641,19 @@ def perlinNoise(nRow, nCol, rcPeriods, rcWrap=(False, False), mask=None):
         The number of rows in the array.
     nCol : int
         The number of columns in the array.
-    rcPeriods: tuple of int
-        The number of periods of Perlin noise across rows, first index, and 
-        columns, second index.  nRow and nCol must be multiples of their 
-        respective periods.
-    rcWrap: tuple of boolean
-        Whether the Perlin noise should wrap by row, first index, and 
-        column, second index.        
+    periods: tuple
+        Integers for the number of periods of Perlin noise across row and 
+        columns for the first octave.
+    octaves : int
+        The number of octave that will form the Perlin noise.
+    lacunarity : int
+        The rate at which the frequency of periods increases for each octive.
+    persistance : float
+        The rate at which the amplitude of periods decreases for each octive.
+    valley: string
+        The kind of valley bottom that will be mimicked: "u" (the defualt) 
+        produces u-shaped valleys, "v" produces v-shaped valleys, and "-" 
+        produces flat bottomed valleys.
     mask : array, optional
         2D array used as a binary mask to limit the elements with values.
         
@@ -647,26 +661,49 @@ def perlinNoise(nRow, nCol, rcPeriods, rcWrap=(False, False), mask=None):
     -------
     out : array
         2D array.
-    """   
-    rP = rcPeriods[0]
-    cP = rcPeriods[1]
+    """
+    # nRow must equal nCol so determine the dimension of the smallest square
+    dim = max(nRow, nCol)
+    # Check the dim is a multiple of each octives maximum number of periods and 
+    # expand dim if needed
+    rPeriodsMax = periods[0] * (lacunarity ** (octaves - 1))
+    cPeriodsMax = periods[1] * (lacunarity ** (octaves - 1))
+    periodsMultiple = np.lcm(rPeriodsMax, cPeriodsMax) # lowest commom multiple
+#    maxPeriods = periods * (lacunarity ** (octaves - 1))
+    if dim % periodsMultiple != 0:
+        dim = int(np.ceil(dim / periodsMultiple) * periodsMultiple)
+
+    # Generate the Perlin noise
+    noise = np.zeros((dim, dim))
+    for octive in range(octaves):
+        noise = noise + octave(dim, dim, periods, octive, lacunarity, persistence)
+    # If needed randomly extract the desired array size
+    if (nRow, nCol) != noise.shape:
+        noise = extractRandomArrayFromSquareArray(noise, nRow, nCol)    
     
-    # Check the the rows and cols are multiples of the periods
-    if nRow%rP != 0:
-        sys.exit("nRow is not a multiple of rcPeriods[0]")
-    if nCol%cP != 0:
-        sys.exit("nCol is not a multiple of rcPeriods[1]")   
-    
+    # Rescale the Perlin noise to mimic different kinds of valley bottoms
+    if valley == "u":
+        surface = linearRescale01(noise)
+    if valley == "v":
+        surface = linearRescale01(np.abs(noise))
+    if valley == "-":
+        surface = linearRescale01(noise ** 2)
+
+    # Apply mask
+    if mask is not None:
+        surface = maskArray(surface, mask)
+    return(surface)
+
+def octave(nRow, nCol, periods, octive, lacunarity, persistence):        
+    rP, cP = periods
+    rP = rP * (lacunarity ** octive)
+    cP = cP * (lacunarity ** octive)
     delta = (rP / nRow, cP / nCol)
     d = (nRow // rP, nCol // cP)
     grid = np.mgrid[0:rP:delta[0],0:cP:delta[1]].transpose(1, 2, 0) % 1
     # Gradients
     angles = 2 * np.pi * np.random.rand(rP + 1, cP + 1)
     gradients = np.dstack((np.cos(angles), np.sin(angles)))
-    if rcWrap[0]:
-        gradients[-1,:] = gradients[0,:]
-    if rcWrap[1]:
-        gradients[:,-1] = gradients[:,0]
     gradients = gradients.repeat(d[0], 0).repeat(d[1], 1)
     g00 = gradients[    :-d[0],    :-d[1]]
     g10 = gradients[d[0]:     ,    :-d[1]]
@@ -681,13 +718,10 @@ def perlinNoise(nRow, nCol, rcPeriods, rcWrap=(False, False), mask=None):
     t = f(grid)
     n0 = n00 * (1 - t[:,:,0]) + t[:,:,0] * n10
     n1 = n01 * (1 - t[:,:,0]) + t[:,:,0] * n11
-    surface = np.sqrt(2) * ((1 - t[:,:,1]) * n0 + t[:,:,1] * n1)
-    # Apply mask and rescale 0-1
-    if mask is not None:
-        surface = maskArray(surface, mask)
-    rescaledArray = linearRescale01(surface)
-    return(rescaledArray)
+    octave = np.sqrt(2) * ((1 - t[:,:,1]) * n0 + t[:,:,1] * n1)
+    return(octave * (persistence ** octive))
     
+
 @jit(nopython=True)
 def f(t):
     return(6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3)
@@ -760,19 +794,21 @@ def randomElementNN(nRow, nCol, n, mask=None):
     """
     # Create an empty array of correct dimensions
     array = np.zeros((nRow, nCol))
+    if mask == None:
+        mask = np.ones((nRow, nCol))
     # Insert value for n elements
     for element in range(n):
         randomRow = np.random.choice(range(nRow))
         randomCol = np.random.choice(range(nCol))
         if array[randomRow, randomCol] == 0 and mask[randomRow, randomCol] == 1:
-            array[randomRow, randomCol] = np.random.random(1)
+            array[randomRow, randomCol] = element + 1
     # Interpolate the values
     interpolatedArray = nnInterpolate(array, array==0)
     # Apply mask and rescale 0-1
     if mask is not None:
         interpolatedArray = maskArray(interpolatedArray, mask)
-    rescaledArray = linearRescale01(interpolatedArray)
-    return(rescaledArray)
+#    rescaledArray = linearRescale01(interpolatedArray)
+    return(interpolatedArray)
  
 #------------------------------------------------------------------------------
 
