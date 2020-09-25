@@ -552,7 +552,6 @@ def extractRandomArrayFromSquareArray(array, nRow, nCol):
     return(array[randomStartRow:randomStartRow + nRow,
                  randomStartCol:randomStartCol + nCol])
 
-#@jit(nopython=True)
 def diamondsquare(dim, h):
     # Create a surface consisting of random displacement heights average value
     # 0, range from [-0.5, 0.5] x displacementheight
@@ -568,7 +567,7 @@ def diamondsquare(dim, h):
             for x in range(0,dim-1,inc):
                 for y in range(0,dim-1,inc):
                     # this adjusts the centre of the square 
-                    surface[x+i2,y+i2] = displacevals(np.array([surface[x,y],surface[x+inc,y],surface[x+inc,y+inc],surface[x,y+inc]]), disheight)
+                    surface[x+i2,y+i2] = displacevals(np.array([surface[x,y],surface[x+inc,y],surface[x+inc,y+inc],surface[x,y+inc]]), disheight, np.random.random(2))
             # DIAMOND step
             for x in range(0, dim-1, inc):
                 for y in range(0, dim-1,inc):
@@ -576,48 +575,47 @@ def diamondsquare(dim, h):
                     diavals = np.zeros((len(diaco),))
                     for c in range(len(diaco)):
                         diavals[c] = surface[diaco[c]]
-                    surface[x+i2,y] = displacevals(diavals,disheight)
+                    surface[x+i2,y] = displacevals(diavals,disheight,np.random.random(2))
                     diaco = check_diamond_coords(x,y+i2,dim,i2)
                     diavals = np.zeros((len(diaco),))
                     for c in range(len(diaco)):
                         diavals[c] = surface[diaco[c]]
-                    surface[x,y+i2] = displacevals(diavals,disheight)
+                    surface[x,y+i2] = displacevals(diavals,disheight,np.random.random(2))
                     diaco = check_diamond_coords(x+inc,y+i2,dim,i2)
                     diavals = np.zeros((len(diaco),))
                     for c in range(len(diaco)):
                         diavals[c] = surface[diaco[c]]
-                    surface[x+inc,y+i2] = displacevals(diavals,disheight)
+                    surface[x+inc,y+i2] = displacevals(diavals,disheight,np.random.random(2))
                     diaco = check_diamond_coords(x+i2,y+inc,dim,i2)
                     diavals = np.zeros((len(diaco),))
                     for c in range(len(diaco)):
                         diavals[c] = surface[diaco[c]]
-                    surface[x+i2,y+inc] = displacevals(diavals,disheight)
+                    surface[x+i2,y+inc] = displacevals(diavals,disheight,np.random.random(2))
             # Reduce displacement height
             disheight = disheight * 2 ** (-float(h))
             inc = int(inc / 2)
     return(surface)
     
 @jit(nopython=True)
-def randomdisplace(disheight):
-    # Returns a random displacement between -0.5 * disheight and 0.5 * disheight
-    return(np.random.random() * disheight -0.5 * disheight)
-
-@jit(nopython=True)
-def displacevals(p, disheight):
+def displacevals(p, disheight, r):
     # Calculate the average value of the 4 corners of a square (3 if up
     # against a corner) and displace at random.
     if len(p) == 4:
-        pcentre = 0.25 * np.sum(p) + randomdisplace(disheight)
+        pcentre = 0.25 * np.sum(p) + randomdisplace(disheight, r[0])
     elif len(p) == 3:
-        pcentre = np.sum(p) / 3 + randomdisplace(disheight)	
+        pcentre = np.sum(p) / 3 + randomdisplace(disheight, r[1])	
     return(pcentre)
 
-#@jit(nopython=True)
+@jit(nopython=True)
+def randomdisplace(disheight, r):
+    # Returns a random displacement between -0.5 * disheight and 0.5 * disheight
+    return(r * disheight -0.5 * disheight)
+    
 def check_diamond_coords(diax,diay,dim,i2):
     # get the coordinates of the diamond centred on diax, diay with radius i2
     # if it fits inside the study area
     if diax < 0 or diax > dim or diay <0 or diay > dim:
-        return []
+        return([])
     if diax-i2 < 0:
         return([(diax+i2,diay),(diax,diay-i2),(diax,diay+i2)])
     if diax + i2 >= dim:
