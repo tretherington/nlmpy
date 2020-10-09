@@ -29,7 +29,6 @@
 import numpy as np
 from scipy import ndimage
 from numba import jit
-import sys
 
 #------------------------------------------------------------------------------
 # REQUIRED FUNCTIONS:
@@ -766,7 +765,7 @@ def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
 
 #------------------------------------------------------------------------------
 
-def randomElementNN(nRow, nCol, n, mask=None):
+def randomElementNN(nRow, nCol, n, mask=None, categorical=False):
     """    
     Create a random element nearest-neighbour neutral landscape model with 
     values ranging 0-1.
@@ -793,18 +792,24 @@ def randomElementNN(nRow, nCol, n, mask=None):
     if mask == None:
         mask = np.ones((nRow, nCol))
     # Insert value for n elements
-    for element in range(n):
+    i = 1
+    while np.max(array) < n:
         randomRow = np.random.choice(range(nRow))
         randomCol = np.random.choice(range(nCol))
         if array[randomRow, randomCol] == 0 and mask[randomRow, randomCol] == 1:
-            array[randomRow, randomCol] = element + 1
+            array[randomRow, randomCol] = i
+            i = i + 1
     # Interpolate the values
-    interpolatedArray = nnInterpolate(array, array==0)
+    interpolatedArray = nnInterpolate(array, array==0) - 1 # -1 to index from 0
     # Apply mask and rescale 0-1
     if mask is not None:
         interpolatedArray = maskArray(interpolatedArray, mask)
-#    rescaledArray = linearRescale01(interpolatedArray)
-    return(interpolatedArray)
+    if categorical == False:
+        rescaledArray = linearRescale01(interpolatedArray)
+        return(rescaledArray)
+    else:
+        return(interpolatedArray.astype('int'))
+    
  
 #------------------------------------------------------------------------------
 
