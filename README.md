@@ -4,7 +4,8 @@
 are widely used by landscape ecologists to model ecological patterns across 
 landscapes.  `NLMpy` can create both continous patterns to represent landscape 
 characteristics such as elevation or moisture gradients, or categorical patterns 
-to represent landscape characteristics such as land parcel boundaries.
+to represent landscape characteristics such as vegetation patches or land parcel 
+boundaries.
 
 `NLMpy` aims to:
 
@@ -19,14 +20,21 @@ A full description of the package can be found in the accompnying
 
 ## Quick examples
 
-Using `NLMpy` to create and export a midpoint displacement NLM can be achieved with 
-only three lines of code:
+All the `NLMpy` neutral landscape models are produced as two-dimensional NumPy arrays, so the 
+results can be easily incorporated into broader Python workflows.
+
+Using `NLMpy` to create a midpoint displacement neutral landscape model can be achieved with 
+only two lines of code:
 
 ```python
 from nlmpy import nlmpy
 nlm = nlmpy.mpd(nRow=50, nCol=50, h=0.75)
-nlmpy.exportASCIIGrid("raster.asc", nlm)
 ```
+
+But as decscibed in the [software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308) 
+a wide variety of different patterns can be produced:
+
+<img src="https://besjournals.onlinelibrary.wiley.com/cms/asset/2a1ff548-8d0f-45e3-af85-981370176795/mee312308-fig-0001-m.jpg" align="centre" width="300" />
 
 ## Citation
 
