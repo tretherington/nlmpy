@@ -2,7 +2,7 @@
 
 `NLMpy` is a Python package for the creation of neutral landscape models that 
 are widely used by landscape ecologists to model ecological patterns across 
-landscapes.  `NLMpy` can create both continous patterns to represent landscape 
+landscapes.  `NLMpy` can create both continuous patterns to represent landscape 
 characteristics such as elevation or moisture gradients, or categorical patterns 
 to represent landscape characteristics such as vegetation patches or land parcel 
 boundaries.
@@ -15,7 +15,7 @@ boundaries.
 - be easily integrated with geographic information system data.
 - enable novel combinations and integrations of different neutral landscape model algorithms.
 
-A full description of the package can be found in the accompnying 
+A full description of the package can be found in the accompanying  
 [software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308).
 
 ## Quick examples
@@ -31,7 +31,7 @@ from nlmpy import nlmpy
 nlm = nlmpy.mpd(nRow=50, nCol=50, h=0.75)
 ```
 
-But as decscibed in the [software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308) 
+But as described in the [software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308) 
 a wide variety of different patterns can be produced:
 
 <img src="https://besjournals.onlinelibrary.wiley.com/cms/asset/2a1ff548-8d0f-45e3-af85-981370176795/mee312308-fig-0001-m.jpg" align="centre" width="1000" />
@@ -55,7 +55,7 @@ pip install nlmpy
 
 If that does not work you could also simply move the `NLMpy.py` file to the same location 
 on your computer as a Python script that wants to import `NLMpy`, then when those scripts are 
-executed they will import all the `NLMpy` functions.  So while this approach doesn’t 
+executed they will import all the `NLMpy` functions.  So while this approach does not 
 actually install `NLMpy` onto your computer, it does at least allow you to make use of the 
 functionality of `NLMpy` within a neighbouring Python script.
 
