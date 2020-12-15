@@ -1,7 +1,7 @@
 # NLMpy <img src="images/logo.png" align="right" width="200" />
 
-NLMpy is a Python package for the creation of neutral landscape models that
-are widely used in the modelling of ecological patterns and processes across
+`NLMpy` is a Python package for the creation of neutral landscape models that 
+are widely used by landscape ecologists to model ecological patterns across 
 landscapes.
 
 NLMpy aims to provide several advantages over existing NLM software:
@@ -13,7 +13,31 @@ NLMpy aims to provide several advantages over existing NLM software:
 * it enables novel combinations and integrations of different NLM algorithms.
 * it can be embedded into larger modelling frameworks based on software that is capable of executing a Python script.  
 
-## Example use
+
+## Citation
+
+If you use `NLMpy` in your research we would be very grateful if
+you could please cite the software using the following software paper:
+
+[Etherington TR, Holland EP, O'Sullivan D (2015) NLMpy: a Python software package for 
+the creation of neutral landscape models within a general numerical framework. Methods in 
+Ecology and Evolution 6:164-168](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308)
+
+## Community guidelines
+
+We very much welcome input from others\! If you find a bug, need some
+help, or can think of some extra functionality that would be useful,
+please raise an
+[issue](https://github.com/tretherington/nlmpy/issues). Better
+still, please feel free to fork the project and raise a pull request if
+you think and can fix a bug, clarify the documentation, or improve the
+functionality yourself.
+
+## Installation
+
+## Dependencies
+
+## Quick examples
 
 Using NLMpy to create and export a midpoint displacement NLM can be achieved with 
 only three lines of code:
