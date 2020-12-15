@@ -220,14 +220,12 @@ def classifyArray(array, weights, classifyMask=None):
 
 #------------------------------------------------------------------------------
 
-def blendArray(primaryArray, arrays, scalingFactors=None):
+def blendArrays(arrays, scalingFactors=None):
     """    
-    Blend a primary array with other arrays weighted by scaling factors.
+    Blend arrays weighted by scaling factors.
 
     Parameters
     ----------
-    primaryArray : array
-        2D array of data values.
     arrays : list
         List of 2D arrays of data values.
     scalingFactors : list
@@ -240,9 +238,10 @@ def blendArray(primaryArray, arrays, scalingFactors=None):
     """
     if scalingFactors is None:
         scalingFactors = np.ones(len(arrays))
+    combinedArrays = np.zeros(arrays[0].shape)
     for n in range(len(arrays)):
-        primaryArray = primaryArray + (arrays[n] * scalingFactors[n])
-    blendedArray = primaryArray / len(arrays)
+        combinedArrays = combinedArrays + (arrays[n] * scalingFactors[n])
+    blendedArray = combinedArrays / len(arrays)
     rescaledArray = linearRescale01(blendedArray)
     return(rescaledArray)
     
