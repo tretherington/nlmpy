@@ -15,7 +15,7 @@ boundaries.
 - be easily integrated with geographic information system data.
 - enable novel combinations and integrations of different neutral landscape model algorithms.
 
-A full description of the package can be found in the accompanying  
+A full description of the package can be found in the accompanying 
 [software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308).
 
 ## Quick examples
