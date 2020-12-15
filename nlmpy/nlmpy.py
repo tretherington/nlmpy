@@ -1,30 +1,10 @@
 #------------------------------------------------------------------------------
-# ABOUT NLMpy
-#------------------------------------------------------------------------------
-
-# NLMpy is a Python package for the creation of neutral landscape models that
-# are widely used in the modelling of ecological patterns and processes across
-# landscapes.
-
-# A full description of NLMpy is published in: Etherington TR, Holland EP, and 
-# O'Sullivan D (2015) NLMpy: a Python software package for the creation of 
-# neutral landscape models within a general numerical framework. Methods in 
-# Ecology and Evolution 6(2):164-168 , which is freely available online  
-# (http://bit.ly/14i4x7n).  
-
-# The journal website also holds example scripts and GIS data
-# (http://bit.ly/1XUXjOF) that generate the figures in the paper.  There are 
-# also some tutorial videos that provide some advice about installing 
-# (http://bit.ly/1qLfMjt) and using (http://bit.ly/2491u9n) NLMpy.
-
-#------------------------------------------------------------------------------
-# LICENSING
-#------------------------------------------------------------------------------
 
 # The MIT License (MIT)
 
-# Copyright (c) 2014 Thomas R. Etherington, E. Penelope Holland, and
-# David O'Sullivan.
+# Copyright (c) 2014 Thomas R. Etherington, E. Penelope Holland, and David O'Sullivan.
+# Copyright (c) 2019 Pierre Vigier
+# Copyright (c) 2020 Landcare Research New Zealand Ltd
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -46,9 +26,9 @@
 
 #------------------------------------------------------------------------------
 
-import math
 import numpy as np
 from scipy import ndimage
+from numba import jit
 
 #------------------------------------------------------------------------------
 # REQUIRED FUNCTIONS:
@@ -115,11 +95,10 @@ def randomUniform01(nRow, nCol, mask=None):
     out : array
         2D float array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     array = np.random.random((nRow, nCol))
-    maskedArray = maskArray(array, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        array = maskArray(array, mask)
+    rescaledArray = linearRescale01(array)
     return(rescaledArray)
     
 #------------------------------------------------------------------------------
@@ -425,17 +404,16 @@ def planarGradient(nRow, nCol, direction=None, mask=None):
     """
     if direction is None:
         direction = np.random.uniform(0, 360, 1) # a random direction
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Create arrays of row and column index
     rowIndex, colIndex = np.indices((nRow, nCol))
     # Determine the eastness and southness of the direction
     eastness = np.sin(np.deg2rad(direction))
     southness = np.cos(np.deg2rad(direction)) * -1
     # Create gradient array
-    gradientArray = (southness * rowIndex + eastness * colIndex)
-    maskedArray = maskArray(gradientArray, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    gradient = (southness * rowIndex + eastness * colIndex)
+    if mask is not None:
+        gradient = maskArray(gradient, mask)
+    rescaledArray = linearRescale01(gradient)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -462,10 +440,10 @@ def edgeGradient(nRow, nCol, direction=None, mask=None):
         2D array.
     """
     # Create planar gradient
-    gradientArray = planarGradient(nRow, nCol, direction, mask)
+    gradient = planarGradient(nRow, nCol, direction, mask)
     # Transform to a central gradient
-    edgeGradientArray = (np.abs(0.5 - gradientArray) * -2) + 1
-    rescaledArray = linearRescale01(edgeGradientArray)
+    edgeGradient = (np.abs(0.5 - gradient) * -2) + 1
+    rescaledArray = linearRescale01(edgeGradient)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -488,11 +466,43 @@ def distanceGradient(source, mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones(np.shape(source))
     gradient = ndimage.distance_transform_edt(1 - source)
-    maskedArray = maskArray(gradient, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        gradient = maskArray(gradient, mask)
+    rescaledArray = linearRescale01(gradient)
+    return(rescaledArray)
+
+#------------------------------------------------------------------------------
+
+def waveSurface(nRow, nCol, periods, direction=None, mask=None):
+    """
+    Create a waves neutral landscape model with values ranging 0-1.
+
+    Parameters
+    ----------
+    nRow : int
+        The number of rows in the array.
+    nCol : int
+        The number of columns in the array.
+    periods: int
+        The number of periods in the landscape, where a period consists of a 
+        complete wave cycle of one crest and one trough.
+    direction: int, optional
+        The direction of the waves as a bearing from north, if unspecified
+        the direction is randomly determined.
+    mask : array, optional
+        2D array used as a binary mask to limit the elements with values.
+        
+    Returns
+    -------
+    out : array
+        2D array.
+    """
+    gradient = planarGradient(nRow, nCol, direction)
+    waves = np.sin(gradient * (2 * np.pi * periods))
+    if mask is not None:
+        waves = maskArray(waves, mask)
+    rescaledArray = linearRescale01(waves)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
@@ -519,102 +529,198 @@ def mpd(nRow, nCol, h, mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))  
     # Determine the dimension of the smallest square
-    maxDim = max(nRow, nCol)
-    N = int(math.ceil(math.log(maxDim - 1, 2)))
+    maxDim = np.max(np.array([nRow, nCol]))
+    N = np.int(np.ceil(np.log2(maxDim - 1)))
     dim = 2 ** N + 1
+    # Create surface and extract required array size if needed
+    surface = diamondsquare(dim, h)
+    if (nRow, nCol) != surface.shape:
+        surface = extractRandomArrayFromSquareArray(surface, nRow, nCol)
+    # Apply mask and rescale 0-1
+    if mask is not None:
+        surface = maskArray(surface, mask)
+    rescaledArray = linearRescale01(surface)
+    return(rescaledArray)
+
+def extractRandomArrayFromSquareArray(array, nRow, nCol):
+    # Extract a portion of the array to match the dimensions
+    dim = array.shape[0]
+    randomStartRow = np.random.choice(range(dim - nRow))
+    randomStartCol = np.random.choice(range(dim - nCol))
+    return(array[randomStartRow:randomStartRow + nRow,
+                 randomStartCol:randomStartCol + nCol])
+
+def diamondsquare(dim, h):
     # Create a surface consisting of random displacement heights average value
     # 0, range from [-0.5, 0.5] x displacementheight
     disheight = 2.0
-    surface = np.random.random([dim,dim]) * disheight -0.5 * disheight
-    
-    #--------------------------------------------------------------------------
-    
-    # Apply the square-diamond algorithm
-    def randomdisplace(disheight):
-        # Returns a random displacement between -0.5 * disheight and 0.5 * disheight
-        return np.random.random() * disheight -0.5 * disheight
-    
-    def displacevals(p, disheight):
-        # Calculate the average value of the 4 corners of a square (3 if up
-        # against a corner) and displace at random.
-        if len(p) == 4:
-            pcentre = 0.25 * sum(p) + randomdisplace(disheight)
-        elif len(p) == 3:
-            pcentre = sum(p) / 3 + randomdisplace(disheight)	
-        return pcentre
-    
-    def check_diamond_coords(diax,diay,dim,i2):
-        # get the coordinates of the diamond centred on diax, diay with radius i2
-        # if it fits inside the study area
-        if diax < 0 or diax > dim or diay <0 or diay > dim:
-            return []
-        if diax-i2 < 0:
-            return [(diax+i2,diay),(diax,diay-i2),(diax,diay+i2)]
-        if diax + i2 >= dim:
-            return [(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)]
-        if diay-i2 < 0:
-            return [(diax+i2,diay),(diax-i2,diay),(diax,diay+i2)]
-        if diay+i2 >= dim:
-            return [(diax+i2,diay),(diax-i2,diay),(diax,diay-i2)]
-        return [(diax+i2,diay),(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)]
-
+    randomValues = np.random.random(size=dim*dim)
+    surface = np.reshape(randomValues, (dim, dim))
+    surface = surface * disheight -0.5 * disheight
     # Set square size to cover the whole array
     inc = dim-1
     while inc > 1: # while considering a square/diamond at least 2x2 in size
-            
             i2 = int(inc/2) # what is half the width (i.e. where is the centre?)
             # SQUARE step
             for x in range(0,dim-1,inc):
-                    for y in range(0,dim-1,inc):
-                            # this adjusts the centre of the square 
-                            surface[x+i2,y+i2] = displacevals([surface[x,y],surface[x+inc,y],surface[x+inc,y+inc],surface[x,y+inc]],disheight)
-            
+                for y in range(0,dim-1,inc):
+                    # this adjusts the centre of the square 
+                    surface[x+i2,y+i2] = displacevals(np.array([surface[x,y],surface[x+inc,y],surface[x+inc,y+inc],surface[x,y+inc]]), disheight, np.random.random(2))
             # DIAMOND step
             for x in range(0, dim-1, inc):
                 for y in range(0, dim-1,inc):
                     diaco = check_diamond_coords(x+i2,y,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x+i2,y] = displacevals(diavals,disheight)
-                   
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x+i2,y] = displacevals(diavals,disheight,np.random.random(2))
                     diaco = check_diamond_coords(x,y+i2,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x,y+i2] = displacevals(diavals,disheight)
-
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x,y+i2] = displacevals(diavals,disheight,np.random.random(2))
                     diaco = check_diamond_coords(x+inc,y+i2,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x+inc,y+i2] = displacevals(diavals,disheight)
-
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x+inc,y+i2] = displacevals(diavals,disheight,np.random.random(2))
                     diaco = check_diamond_coords(x+i2,y+inc,dim,i2)
-                    diavals = []
-                    for co in diaco:
-                        diavals.append(surface[co])
-                    surface[x+i2,y+inc] = displacevals(diavals,disheight)
-                    
+                    diavals = np.zeros((len(diaco),))
+                    for c in range(len(diaco)):
+                        diavals[c] = surface[diaco[c]]
+                    surface[x+i2,y+inc] = displacevals(diavals,disheight,np.random.random(2))
             # Reduce displacement height
-            disheight = disheight * 2 ** (-h)
+            disheight = disheight * 2 ** (-float(h))
             inc = int(inc / 2)
+    return(surface)
+    
+@jit(nopython=True)
+def displacevals(p, disheight, r):
+    # Calculate the average value of the 4 corners of a square (3 if up
+    # against a corner) and displace at random.
+    if len(p) == 4:
+        pcentre = 0.25 * np.sum(p) + randomdisplace(disheight, r[0])
+    elif len(p) == 3:
+        pcentre = np.sum(p) / 3 + randomdisplace(disheight, r[1])	
+    return(pcentre)
 
-    #--------------------------------------------------------------------------
+@jit(nopython=True)
+def randomdisplace(disheight, r):
+    # Returns a random displacement between -0.5 * disheight and 0.5 * disheight
+    return(r * disheight -0.5 * disheight)
     
-    # Extract a portion of the array to match the dimensions
-    randomStartRow = np.random.choice(range(dim - nRow))
-    randomStartCol = np.random.choice(range(dim - nCol))
-    array = surface[randomStartRow:randomStartRow + nRow,
-                    randomStartCol:randomStartCol + nCol]
-    # Apply mask and rescale 0-1
-    maskedArray = maskArray(array, mask)
-    rescaledArray = linearRescale01(maskedArray)
-    return(rescaledArray)
+def check_diamond_coords(diax,diay,dim,i2):
+    # get the coordinates of the diamond centred on diax, diay with radius i2
+    # if it fits inside the study area
+    if diax < 0 or diax > dim or diay <0 or diay > dim:
+        return([])
+    if diax-i2 < 0:
+        return([(diax+i2,diay),(diax,diay-i2),(diax,diay+i2)])
+    if diax + i2 >= dim:
+        return([(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)])
+    if diay-i2 < 0:
+        return([(diax+i2,diay),(diax-i2,diay),(diax,diay+i2)])
+    if diay+i2 >= dim:
+        return([(diax+i2,diay),(diax-i2,diay),(diax,diay-i2)])
+    return([(diax+i2,diay),(diax-i2,diay),(diax,diay-i2),(diax,diay+i2)])    
+
+#------------------------------------------------------------------------------
+
+def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
+                valley="u", mask=None):
+    """    
+    Create a Perlin noise neutral landscape model with values ranging 0-1.
+
+    Parameters
+    ----------
+    nRow : int
+        The number of rows in the array.
+    nCol : int
+        The number of columns in the array.
+    periods: tuple
+        Integers for the number of periods of Perlin noise across row and 
+        column dimensions for the first octave.
+    octaves : int
+        The number of octaves that will form the Perlin noise.
+    lacunarity : int
+        The rate at which the frequency of periods increases for each octive.
+    persistance : float
+        The rate at which the amplitude of periods decreases for each octive.
+    valley: string
+        The kind of valley bottom that will be mimicked: "u" (the defualt) 
+        produces u-shaped valleys, "v" produces v-shaped valleys, and "-" 
+        produces flat bottomed valleys.
+    mask : array, optional
+        2D array used as a binary mask to limit the elements with values.
+        
+    Returns
+    -------
+    out : array
+        2D array.
+    """
+    # nRow must equal nCol so determine the dimension of the smallest square
+    dim = max(nRow, nCol)
+    # Check the dim is a multiple of each octives maximum number of periods and 
+    # expand dim if needed
+    rPeriodsMax = periods[0] * (lacunarity ** (octaves - 1))
+    cPeriodsMax = periods[1] * (lacunarity ** (octaves - 1))
+    periodsMultiple = np.lcm(rPeriodsMax, cPeriodsMax) # lowest commom multiple
+    if dim % periodsMultiple != 0:
+        dim = int(np.ceil(dim / periodsMultiple) * periodsMultiple)
+
+    # Generate the Perlin noise
+    noise = np.zeros((dim, dim))
+    for octive in range(octaves):
+        noise = noise + octave(dim, dim, periods, octive, lacunarity, persistence)
+    # If needed randomly extract the desired array size
+    if (nRow, nCol) != noise.shape:
+        noise = extractRandomArrayFromSquareArray(noise, nRow, nCol)    
     
+    # Rescale the Perlin noise to mimic different kinds of valley bottoms
+    if valley == "u":
+        surface = linearRescale01(noise)
+    if valley == "v":
+        surface = linearRescale01(np.abs(noise))
+    if valley == "-":
+        surface = linearRescale01(noise ** 2)
+
+    # Apply mask
+    if mask is not None:
+        surface = maskArray(surface, mask)
+    return(surface)
+
+def octave(nRow, nCol, periods, octive, lacunarity, persistence):        
+    rP, cP = periods
+    rP = rP * (lacunarity ** octive)
+    cP = cP * (lacunarity ** octive)
+    delta = (rP / nRow, cP / nCol)
+    d = (nRow // rP, nCol // cP)
+    grid = np.mgrid[0:rP:delta[0],0:cP:delta[1]].transpose(1, 2, 0) % 1
+    # Gradients
+    angles = 2 * np.pi * np.random.rand(rP + 1, cP + 1)
+    gradients = np.dstack((np.cos(angles), np.sin(angles)))
+    gradients = gradients.repeat(d[0], 0).repeat(d[1], 1)
+    g00 = gradients[    :-d[0],    :-d[1]]
+    g10 = gradients[d[0]:     ,    :-d[1]]
+    g01 = gradients[    :-d[0],d[1]:     ]
+    g11 = gradients[d[0]:     ,d[1]:     ]
+    # Ramps
+    n00 = np.sum(np.dstack((grid[:,:,0]  , grid[:,:,1]  )) * g00, 2)
+    n10 = np.sum(np.dstack((grid[:,:,0]-1, grid[:,:,1]  )) * g10, 2)
+    n01 = np.sum(np.dstack((grid[:,:,0]  , grid[:,:,1]-1)) * g01, 2)
+    n11 = np.sum(np.dstack((grid[:,:,0]-1, grid[:,:,1]-1)) * g11, 2)
+    # Interpolation
+    t = f(grid)
+    n0 = n00 * (1 - t[:,:,0]) + t[:,:,0] * n10
+    n1 = n01 * (1 - t[:,:,0]) + t[:,:,0] * n11
+    octave = np.sqrt(2) * ((1 - t[:,:,1]) * n0 + t[:,:,1] * n1)
+    return(octave * (persistence ** octive))
+    
+@jit(nopython=True)
+def f(t):
+    return(6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3)
+
 #------------------------------------------------------------------------------
 
 def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
@@ -642,8 +748,6 @@ def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
     out : array
         2D array.
     """    
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Create an empty array of correct dimensions
     array = np.zeros((nRow, nCol)) - 1
     # Keep applying random clusters until all elements have a value
@@ -653,14 +757,15 @@ def randomRectangularCluster(nRow, nCol, minL, maxL, mask=None):
         row = np.random.choice(range(-maxL, nRow))
         col = np.random.choice(range(-maxL, nCol))
         array[row:row + width, col:col + height] = np.random.random()   
-    # Apply mask and rescale 0-1        
-    maskedArray = maskArray(array, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    # Apply mask and rescale 0-1
+    if mask is not None:
+        array = maskArray(array, mask)
+    rescaledArray = linearRescale01(array)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
 
-def randomElementNN(nRow, nCol, n, mask=None):
+def randomElementNN(nRow, nCol, n, mask=None, categorical=False):
     """    
     Create a random element nearest-neighbour neutral landscape model with 
     values ranging 0-1.
@@ -682,22 +787,29 @@ def randomElementNN(nRow, nCol, n, mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Create an empty array of correct dimensions
     array = np.zeros((nRow, nCol))
+    if mask == None:
+        mask = np.ones((nRow, nCol))
     # Insert value for n elements
-    for element in range(n):
+    i = 1
+    while np.max(array) < n:
         randomRow = np.random.choice(range(nRow))
         randomCol = np.random.choice(range(nCol))
         if array[randomRow, randomCol] == 0 and mask[randomRow, randomCol] == 1:
-            array[randomRow, randomCol] = np.random.random(1)
+            array[randomRow, randomCol] = i
+            i = i + 1
     # Interpolate the values
-    interpolatedArray = nnInterpolate(array, array==0)
+    interpolatedArray = nnInterpolate(array, array==0) - 1 # -1 to index from 0
     # Apply mask and rescale 0-1
-    maskedArray = maskArray(interpolatedArray, mask)
-    rescaledArray = linearRescale01(maskedArray)
-    return(rescaledArray)
+    if mask is not None:
+        interpolatedArray = maskArray(interpolatedArray, mask)
+    if categorical == False:
+        rescaledArray = linearRescale01(interpolatedArray)
+        return(rescaledArray)
+    else:
+        return(interpolatedArray.astype('int'))
+    
  
 #------------------------------------------------------------------------------
 
@@ -740,8 +852,6 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
     out : array
         2D array.
     """
-    if mask is None:
-        mask = np.ones((nRow, nCol))
     # Define a dictionary of possible neighbourhood structures:
     neighbourhoods = {}
     neighbourhoods['4-neighbourhood'] = np.array([[0,1,0],
@@ -769,8 +879,9 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
     # Gap fill with nearest neighbour interpolation
     interpolatedArray = nnInterpolate(clusterArray, clusterArray==0)
     # Apply mask and rescale 0-1
-    maskedArray = maskArray(interpolatedArray, mask)
-    rescaledArray = linearRescale01(maskedArray)
+    if mask is not None:
+        interpolatedArray = maskArray(interpolatedArray, mask)
+    rescaledArray = linearRescale01(interpolatedArray)
     return(rescaledArray)
 
 #------------------------------------------------------------------------------
