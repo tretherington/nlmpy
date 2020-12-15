@@ -4,24 +4,56 @@
 are widely used by landscape ecologists to model ecological patterns across 
 landscapes.
 
-NLMpy aims to provide several advantages over existing NLM software:
+`NLMpy` aims to:
 
-* it is open-source so it can be easily adapted or developed for specific modelling requirements.
-* being cross-platform it can be used on any computer system.
-* it brings together a much wider range of NLM algorithms, including some that are not available elsewhere.
-* it can be combined with geographic information system (GIS) data.
-* it enables novel combinations and integrations of different NLM algorithms.
-* it can be embedded into larger modelling frameworks based on software that is capable of executing a Python script.  
+- be open-source so it can be easily adapted or developed for specific modelling requirements.
+- be cross-platform it can be used on any computer system.
+- bring together a wide range of neutral landscape model algorithms.
+- be easily integrated with geographic information system data.
+- enable novel combinations and integrations of different neutral landscape model algorithms.
 
+A full description of the package can be found in the accompnying 
+[software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308).
+
+## Quick examples
+
+Using `NLMpy` to create and export a midpoint displacement NLM can be achieved with 
+only three lines of code:
+
+```python
+from nlmpy import nlmpy
+nlm = nlmpy.mpd(nRow=50, nCol=50, h=0.75)
+nlmpy.exportASCIIGrid("raster.asc", nlm)
+```
 
 ## Citation
 
-If you use `NLMpy` in your research we would be very grateful if
-you could please cite the software using the following software paper:
+If you use `NLMpy` in your research we would be very grateful if you could please cite the 
+software using the following freely available software paper:
 
 [Etherington TR, Holland EP, O'Sullivan D (2015) NLMpy: a Python software package for 
 the creation of neutral landscape models within a general numerical framework. Methods in 
 Ecology and Evolution 6:164-168](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308)
+
+## Installation
+
+`NLMpy` is available on the [Python Package Index](https://pypi.python.org/pypi/nlmpy), so it can be installed using:
+
+```
+pip install nlmpy
+```
+
+If that does not work you could also simply move the `NLMpy.py` file to the same location 
+on your computer as a Python script that wants to import `NLMpy`, then when those scripts are 
+executed they will import all the `NLMpy` functions.  So while this approach doesn’t 
+actually install `NLMpy` onto your computer, it does at least allow you to make use of the 
+functionality of `NLMpy` within a neighbouring Python script.
+
+## Package dependencies
+
+- numpy
+- scipy
+- numba
 
 ## Community guidelines
 
@@ -32,33 +64,3 @@ please raise an
 still, please feel free to fork the project and raise a pull request if
 you think and can fix a bug, clarify the documentation, or improve the
 functionality yourself.
-
-## Installation
-
-## Dependencies
-
-## Quick examples
-
-Using NLMpy to create and export a midpoint displacement NLM can be achieved with 
-only three lines of code:
-
-```python
-from nlmpy import nlmpy
-nlm = nlmpy.mpd(nRow=50, nCol=50, h=0.75)
-nlmpy.exportASCIIGrid("raster.asc", nlm)
-```
-
-## New developments
-
-Having forked the project into manaakiwhenua the following have been (or are being!) added:
-
-### Done:
-* additional NLMs; waveSurface, perlinNoise
-
-### Doing:
-* numba integration to leverage jit compliation where useful
-* general coding improvements to speed slow functions up
-* error check and handling
-
-### To do:
-* wiki pages containing more detailed examples
