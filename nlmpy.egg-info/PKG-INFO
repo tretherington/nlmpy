@@ -2,7 +2,7 @@ Metadata-Version: 1.0
 Name: nlmpy
 Version: 1.0.0
 Summary: A Python package to create neutral landscape models
-Home-page: https://pypi.python.org/pypi/nlmpy
+Home-page: https://github.com/tretherington/nlmpy
 Author: Thomas R. Etherington, E. Penelope Holland, David O'Sullivan, Pierre Vigier
 Author-email: etheringtont@landcareresearch.co.nz
 License: MIT
