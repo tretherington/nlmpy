@@ -1,4 +1,4 @@
-# NLMpy
+# NLMpy <img src="images/logo.png" align="right" width="200" />
 
 NLMpy is a Python package for the creation of neutral landscape models that
 are widely used in the modelling of ecological patterns and processes across
