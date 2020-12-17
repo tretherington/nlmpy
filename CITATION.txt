@@ -1,0 +1,17 @@
+To cite NLMpy in publications use:
+
+Etherington TR, Holland EP, O'Sullivan D (2015) NLMpy: a Python software package for the creation of neutral landscape models within a general numerical framework. Methods in Ecology and Evolution 6:164-168
+
+A BibTeX entry for LaTeX users is:
+
+@article{,
+   author = {Etherington, T. R. and Holland, E. P. and O'Sullivan, D.},
+   title = {{NLMpy}: a {Python} software package for the creation of neutral landscape models within a general numerical framework},
+   journal = {Methods in Ecology and Evolution},
+   volume = {6},
+   number = {2},
+   pages = {164-168},
+   DOI = {10.1111/2041-210X.12308},
+   year = {2015},
+   type = {Journal Article}
+}
