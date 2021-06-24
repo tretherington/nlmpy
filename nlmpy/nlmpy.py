@@ -627,7 +627,7 @@ def check_diamond_coords(diax,diay,dim,i2):
 #------------------------------------------------------------------------------
 
 def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
-                valley="u", mask=None):
+                rescale='linear', mask=None):
     """    
     Create a Perlin noise neutral landscape model with values ranging 0-1.
 
@@ -646,10 +646,9 @@ def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
         The rate at which the frequency of periods increases for each octive.
     persistance : float
         The rate at which the amplitude of periods decreases for each octive.
-    valley: string
-        The kind of valley bottom that will be mimicked: "u" (the defualt) 
-        produces u-shaped valleys, "v" produces v-shaped valleys, and "-" 
-        produces flat bottomed valleys.
+    rescale: string
+        How the Perlin noise values are rescaled between 0 and 1.  Options 
+		includes: 'linear' (the default), 'absolute', and 'squared'.
     mask : array, optional
         2D array used as a binary mask to limit the elements with values.
         
@@ -676,12 +675,12 @@ def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
     if (nRow, nCol) != noise.shape:
         noise = extractRandomArrayFromSquareArray(noise, nRow, nCol)    
     
-    # Rescale the Perlin noise to mimic different kinds of valley bottoms
-    if valley == "u":
+    # Rescale the Perlin noise
+    if rescale == 'linear':
         surface = linearRescale01(noise)
-    if valley == "v":
+    if rescale == 'absolute':
         surface = linearRescale01(np.abs(noise))
-    if valley == "-":
+    if rescale == 'squared':
         surface = linearRescale01(noise ** 2)
 
     # Apply mask
