@@ -1,0 +1,10 @@
+LICENSE.txt
+README.md
+pyproject.toml
+setup.cfg
+src/nlmpy/__init__.py
+src/nlmpy/nlmpy.py
+src/nlmpy.egg-info/PKG-INFO
+src/nlmpy.egg-info/SOURCES.txt
+src/nlmpy.egg-info/dependency_links.txt
+src/nlmpy.egg-info/top_level.txt
