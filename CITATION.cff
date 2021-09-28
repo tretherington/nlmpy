@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, we would really appreciate it if you could please cite it as follows:"
+authors:
+- family-names: "Etherington"
+  given-names: "Thomas R."
+  orcid: "https://orcid.org/0000-0002-3187-075X"
+- family-names: "Holland"
+  given-names: "E. Penelope"
+  orcid: "https://orcid.org/0000-0002-4334-6234"
+- family-names: "O'Sullivan"
+  given-names: "David"
+  orcid: "https://orcid.org/0000-0001-8078-3241"
+title: "NLMpy"
+version: 1.1.0
+doi: 10.5281/zenodo.5533033
+date-released: 2021-09-28
+url: "https://github.com/tretherington/nlmpy"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Etherington"
+    given-names: "Thomas R."
+    orcid: "https://orcid.org/0000-0002-3187-075X"
+  - family-names: "Holland"
+    given-names: "E. Penelope"
+    orcid: "https://orcid.org/0000-0002-4334-6234"
+  - family-names: "O'Sullivan"
+    given-names: "David"
+    orcid: "https://orcid.org/0000-0001-8078-3241"
+  doi: "10.1111/2041-210X.12308"
+  journal: "Methods in Ecology and Evolution"
+  start: 164 # First page number
+  end: 168 # Last page number
+  title: "NLMpy: a PYTHON software package for the creation of neutral landscape models within a general numerical framework"
+  issue: 2
+  volume: 6
+  year: 2015
