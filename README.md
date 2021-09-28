@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/282114690.svg)](https://zenodo.org/badge/latestdoi/282114690)
+
 # NLMpy <img src="images/logo.png" align="right" width="200" />
 
 `NLMpy` is a Python package for the creation of neutral landscape models that 
