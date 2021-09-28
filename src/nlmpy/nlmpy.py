@@ -4,7 +4,7 @@
 
 # Copyright (c) 2014 Thomas R. Etherington, E. Penelope Holland, and David O'Sullivan.
 # Copyright (c) 2019 Pierre Vigier
-# Copyright (c) 2020 Landcare Research New Zealand Ltd
+# Copyright (c) 2021 Landcare Research New Zealand Ltd
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 
 #------------------------------------------------------------------------------
 
+import sys
 import numpy as np
 from scipy import ndimage
 from numba import jit
@@ -881,5 +882,152 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
         interpolatedArray = maskArray(interpolatedArray, mask)
     rescaledArray = linearRescale01(interpolatedArray)
     return(rescaledArray)
+
+#------------------------------------------------------------------------------
+
+def bsp(nRow, nCol, n, partOrient='longest', maxLWRatio=2, p=None):
+    """    
+    Create a binary space partitioning (BSP) neutral landscape model (NLM).
+
+    Parameters
+    ----------
+    nRow : int
+        The number of rows in the NLM array.
+    nCol : int
+        The number of columns in the NLM array.
+    n: int
+        The number of patches in the NLM array.
+    partOrient: string
+        One of 'longest', 'random', 'horizontal', 'vertical' that specifies the
+        prefered orientation of the patch BSP, default value is 'longest'
+    maxLWRatio: integer or float
+        The maximum permitted length to width ratio of patches created by BSP.
+        This parameter must be equal to greater than the default value is 2 to 
+        allow a square to be partitioned.
+    p: array, optional
+        2D array used to determine the probability of BSP occurring across the
+        NLM array.  This parameter is optional, and if unspecified the 
+        probability of BSP = 1 everywhere within the array.
+        
+    Returns
+    -------
+    out : tuple 
+        The ouput tuple contains a series of data structures:
+            (0) 2D array: An NLM of intger values that denote the location of
+                each patch in the landscape.
+            (1) Dictionary: the BSP tree keyed by parent patch that returns a
+                tuple of the parent patch's child patches.
+            (2) Dictionary: keyed by leaf patches, this dictionary records the
+                tree height of the BSP leaf nodes/patches.
+            (3) Dictionary: keyed by patch, this dictionary returns a tuple of
+                tuples that record the array indices for the patch dimensions 
+                by row and column ((min row, max row), (min col, max col)).
+            (4) Dictionary: keyed by tree height, this dictionary returns a 
+                list of the patches at the specified BSP tree height.
+    """
+    # Extract inputs and build default inputs
+    if p is None:
+        p = np.ones((nRow, nCol))
+    # If a probability array is supplied, check its dimensions
+    else:
+        if ((nRow, nCol)) != p.shape:
+            print("The probability array is not the same shape as the specified NLM")
+            sys.exit()            
+    # Check keyword and ratio is appropriate, if not end with error message
+    if maxLWRatio < 2:
+        print("maxLWRatio parameter must be >=2")
+        sys.exit()
+    if partOrient not in ['longest', 'random', 'horizontal', 'vertical']:
+        print("The partOrient parameter must be one of: 'longest', 'random', 'horizontal', 'vertical'")
+        sys.exit()
+        
+    # Initiate data structures and progress counters
+    bspSpace = np.zeros((nRow, nCol)).astype('int')
+    patchDims = {}
+    patchDims[0] = ((0, nRow), (0, nCol))    
+    patchCount = 1
+    bspTree = {}
+    treeHeight = {}
+    treeHeight[0] = 0
+    treeHeights = [[0]]
+    leafNodes = {}
+    leafNodes[0] = 0
+    maxLeafNode = 0
+    
+    # Start creating patches
+    while patchCount < n:
+        # Pick a random leaf node
+        randomRow = np.random.randint(low=0, high=nRow, size=1)
+        randomCol = np.random.randint(low=0, high=nCol, size=1)
+        randomLeafNode = bspSpace[randomRow, randomCol][0]
+        # Get dimensions for random leaf node cells
+        minRow, maxRow = patchDims[randomLeafNode][0]
+        minCol, maxCol = patchDims[randomLeafNode][1]
+        dimCols = maxCol - minCol
+        dimRows = maxRow - minRow        
+        # Check probability of partition
+        meanP = np.mean(p[minRow:maxRow, minCol:maxCol])
+        if meanP >= np.random.uniform(size=1):
+            # Determine split direction
+            orientation = np.random.choice(['horizontal', 'vertical'])
+            if partOrient == 'longest':
+                # If there is a long axis use that
+                if (maxRow - minRow) > (maxCol - minCol):
+                    orientation = 'horizontal'
+                if (maxRow - minRow) < (maxCol - minCol):
+                    orientation = 'vertical'
+            else:
+                # Apply the defined orientation if there is one
+                if partOrient != 'random':
+                    orientation = partOrient        
+                # Check the resulting length width ratio is within the limit, 
+                # and if not then switch the partition direction
+                if orientation == 'horizontal':
+                    if dimCols / (dimRows / 2) > maxLWRatio:
+                        orientation = 'vertical'
+                else:
+                    if dimRows / (dimCols / 2) > maxLWRatio:
+                        orientation = 'horizontal'
+            # Check partition can occur
+            partitionCheck = False
+            if orientation == 'horizontal':
+                if dimRows >= 2:
+                    partitionCheck = True
+            if orientation == 'vertical':
+                if dimCols >= 2:
+                    partitionCheck = True            
+            # Partion patch
+            if partitionCheck == True:
+                patchCount = patchCount + 1
+                height = leafNodes[randomLeafNode]
+                del leafNodes[randomLeafNode]               
+                if orientation == 'horizontal':
+                    partitionRow = int(minRow + (dimRows / 2))
+                    bspSpace[minRow:partitionRow, minCol:maxCol] = maxLeafNode + 1
+                    patchDims[maxLeafNode + 1] = ((minRow, partitionRow), (minCol, maxCol))
+                    bspSpace[partitionRow:maxRow, minCol:maxCol] = maxLeafNode + 2
+                    patchDims[maxLeafNode + 2] = ((partitionRow, maxRow), (minCol, maxCol))
+                if orientation == 'vertical':
+                    partitionCol = int(minCol + (dimCols / 2))
+                    bspSpace[minRow:maxRow, minCol:partitionCol] = maxLeafNode + 1
+                    patchDims[maxLeafNode + 1] = ((minRow, maxRow), (minCol, partitionCol))
+                    bspSpace[minRow:maxRow, partitionCol:maxCol] = maxLeafNode + 2
+                    patchDims[maxLeafNode + 2] = ((minRow, maxRow), (partitionCol, maxCol))
+                # Update tree
+                bspTree[randomLeafNode] = (maxLeafNode + 1, maxLeafNode + 2)
+                
+                leafNodes[maxLeafNode + 1] = height + 1
+                leafNodes[maxLeafNode + 2] = height + 1
+                
+                treeHeight[maxLeafNode + 1] = treeHeight[randomLeafNode] + 1
+                treeHeight[maxLeafNode + 2] = treeHeight[randomLeafNode] + 1              
+                
+                if len(treeHeights) <= treeHeight[randomLeafNode] + 1:
+                    treeHeights.append([])
+                treeHeights[treeHeight[randomLeafNode] + 1].append(maxLeafNode + 1)
+                treeHeights[treeHeight[randomLeafNode] + 1].append(maxLeafNode + 2)
+                maxLeafNode = maxLeafNode + 2
+
+    return(bspSpace, bspTree, leafNodes, patchDims, treeHeights)
 
 #------------------------------------------------------------------------------
