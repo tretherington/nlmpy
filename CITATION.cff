@@ -29,6 +29,7 @@ preferred-citation:
     orcid: "https://orcid.org/0000-0001-8078-3241"
   doi: "10.1111/2041-210X.12308"
   journal: "Methods in Ecology and Evolution"
+  month: 2
   start: 164 # First page number
   end: 168 # Last page number
   title: "NLMpy: a PYTHON software package for the creation of neutral landscape models within a general numerical framework"
