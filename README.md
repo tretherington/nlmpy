@@ -36,7 +36,9 @@ nlm = nlmpy.mpd(nRow=50, nCol=50, h=0.75)
 But as described in the [software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308) 
 a wide variety of different patterns can be produced:
 
-<img src="[images/logo.png](https://besjournals.onlinelibrary.wiley.com/cms/asset/2a1ff548-8d0f-45e3-af85-981370176795/mee312308-fig-0001-m.jpg)" align="left" width="200"/>
+<p align = "center">
+<img src="https://besjournals.onlinelibrary.wiley.com/cms/asset/2a1ff548-8d0f-45e3-af85-981370176795/mee312308-fig-0001-m.jpg"/>
+</p>
 
 ## Citation
 
