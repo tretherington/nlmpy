@@ -531,7 +531,7 @@ def mpd(nRow, nCol, h, mask=None):
     """
     # Determine the dimension of the smallest square
     maxDim = np.max(np.array([nRow, nCol]))
-    N = np.int(np.ceil(np.log2(maxDim - 1)))
+    N = int(np.ceil(np.log2(maxDim - 1)))
     dim = 2 ** N + 1
     # Create surface and extract required array size if needed
     surface = diamondsquare(dim, h)
