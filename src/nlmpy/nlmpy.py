@@ -511,11 +511,11 @@ def mpd(nRow, nCol, h, mask=None):
     """    
     Create a midpoint displacement neutral landscape model with values ranging 
     0-1.
-	
-	For a full description of the algorithm see: Fournier et al. (1982) Computer 
-	rendering of stochastic models. Communications of the ACM 25: 371-384.
-	http://doi.org/10.1145/358523.358553
-	
+
+    For a full description of the algorithm see: Fournier et al. (1982) Computer 
+    rendering of stochastic models. Communications of the ACM 25: 371-384.
+    http://doi.org/10.1145/358523.358553
+
     Parameters
     ----------
     nRow : int
@@ -636,10 +636,10 @@ def perlinNoise(nRow, nCol, periods, octaves=1, lacunarity=2, persistence=0.5,
     """    
     Create a Perlin noise neutral landscape model with values ranging 0-1.
 
-	For a full description of the method see Etherington TR (2022) Perlin noise 
-	as a hierarchical neutral landscape model. Web Ecology 22:1-6. 
-	http://doi.org/10.5194/we-22-1-2022
-	
+    For a full description of the method see Etherington TR (2022) Perlin noise 
+    as a hierarchical neutral landscape model. Web Ecology 22:1-6. 
+    http://doi.org/10.5194/we-22-1-2022
+
     Parameters
     ----------
     nRow : int
@@ -824,11 +824,11 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
     """    
     Create a random cluster nearest-neighbour neutral landscape model with 
     values ranging 0-1.
-	
-	This NLM was adapted from Saura et al. (2000) Landscape patterns simulation 
-	with a modified random clusters method. Landscape Ecology 15: 661-678.
-	http://doi.org/10.1023/A:1008107902848.
-	
+
+    This NLM was adapted from Saura et al. (2000) Landscape patterns simulation 
+    with a modified random clusters method. Landscape Ecology 15: 661-678.
+    http://doi.org/10.1023/A:1008107902848.
+
     Parameters
     ----------
     nRow : int
@@ -900,7 +900,7 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
 def bsp(nRow, nCol, n, partOrient='longest', maxLWRatio=2, p=None):
     """    
     Create a binary space partitioning (BSP) neutral landscape model (NLM).
-    
+
     For a full description of the method see Etherington et al. (2022) Binary 
     space partitioning generates hierarchical and rectilinear neutral landscape 
     models suitable for human-dominated landscapes. Landscape Ecology 
@@ -972,7 +972,7 @@ def bspPartitioning(n, bspSpace, bspTree, leafNodes, patchDims, treeHeights,
     """    
     This function conducts binary space partitioning (BSP), and can be used to
     add further partions to an existing BSP neutral landscape model (NLM).
-    
+
     For a full description of the method see Etherington et al. (2022) Binary 
     space partitioning generates hierarchical and rectilinear neutral landscape 
     models suitable for human-dominated landscapes. Landscape Ecology 
