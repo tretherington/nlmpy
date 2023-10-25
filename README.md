@@ -45,6 +45,19 @@ software using the following freely available software paper:
 the creation of neutral landscape models within a general numerical framework. Methods in 
 Ecology and Evolution 6:164-168](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308)
 
+Some of the neutral landscape models available in `NLMpy` were developed elsewhere.  Therefore, we 
+think it is good practice to cite the original source a neutral landscape model so that there is appropriate 
+credit given not just for the implementation in NLMpy but also for the original idea.  The freely available
+[NLMpy software paper](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12308) and the
+docstring preceding each function contains a reference when relevant.
+
+We would then recommend formatting statements such as the following to give credit to both the idea and software
+implementation:
+
+- "We used a midpoint displacement (Fournier et al. 1982) based neutral landscape model as implemented in NLMpy (Etherington et al. 2015)"
+- "The NLMpy software (Etherington et al. 2015) was used to create Perlin noise neutral landscape models (Etherington 2022)."
+- "Modified random "
+
 ## Installation
 
 `NLMpy` is available on the [Python Package Index](https://pypi.python.org/pypi/nlmpy), so it can be installed using:
