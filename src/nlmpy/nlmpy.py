@@ -511,7 +511,11 @@ def mpd(nRow, nCol, h, mask=None):
     """    
     Create a midpoint displacement neutral landscape model with values ranging 
     0-1.
-
+	
+	For a full description of the algorithm see: Fournier et al. (1982) Computer 
+	rendering of stochastic models. Communications of the ACM 25: 371-384.
+	http://doi.org/10.1145/358523.358553
+	
     Parameters
     ----------
     nRow : int
@@ -820,7 +824,11 @@ def randomClusterNN(nRow, nCol, p, n='4-neighbourhood', mask=None):
     """    
     Create a random cluster nearest-neighbour neutral landscape model with 
     values ranging 0-1.
-
+	
+	This NLM was adapted from Saura et al. (2000) Landscape patterns simulation 
+	with a modified random clusters method. Landscape Ecology 15: 661-678.
+	http://doi.org/10.1023/A:1008107902848.
+	
     Parameters
     ----------
     nRow : int
