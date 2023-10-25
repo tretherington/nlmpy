@@ -56,7 +56,6 @@ implementation:
 
 - "We used a midpoint displacement (Fournier et al. 1982) based neutral landscape model as implemented in NLMpy (Etherington et al. 2015)"
 - "The NLMpy software (Etherington et al. 2015) was used to create Perlin noise neutral landscape models (Etherington 2022)."
-- "Modified random "
 
 ## Installation
 
